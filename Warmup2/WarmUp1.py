@@ -8,9 +8,19 @@ class MyApp(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
 
+        base.disableMouse()
+        base.camera.setPos(0.0, 0.0, 250.0)
+        base.camera.setHpr(0.0, -90.0, 0.0)
+
         self.fighter = self.loader.loadModel("Assets/sphere")
         self.fighter.reparentTo(self.render)
         self.fighter.setColorScale(1.0, 0.0, 0.0, 1.0)
+
+        self.accept('arrow_left', self.negativeX, [1])
+        self.accept('arrow_left-up', self.negativeX, [0])
+
+        self.accept('arrow_right', self.positiveX, [1])
+        self.accept('arrow_right-up', self.positiveX, [0])
 
         self.parent = self.loader.loadModel("Assets/cube")
 
@@ -28,6 +38,27 @@ class MyApp(ShowBase):
             x = x + 0.06
 
         self.accept('escape', self.quit)
+
+
+    def negativeX(self, keyDown):
+            if (keyDown):
+                self.taskMgr.add(self.moveNegativeX, 'moveNegativeX')
+            else:
+                self.taskMgr.remove('moveNegativeX')
+
+    def moveNegativeX(self, task):
+        self.fighter.setX(self.fighter, -1)
+        return task.cont
+    
+    def positiveX(self, keyDown):
+         if (keyDown):
+              self.taskMgr.add(self.movePositiveX, 'movePositiveX')
+         else:
+              self.taskMgr.remove('movePositiveX')
+
+    def movePositiveX(self, task):
+         self.fighter.setX(self.fighter, 1)
+         return task.cont
 
     def quit(self):
         sys.exit()
