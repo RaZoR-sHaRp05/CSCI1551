@@ -54,6 +54,7 @@ class MyApp(ShowBase):
         self.parentCnode.show()
 
         self.traverser = CollisionTraverser()
+        base.cTrav = self.traverser
         self.traverser.traverse(self.render)
         self.traverser.showCollisions(self.render)
 
