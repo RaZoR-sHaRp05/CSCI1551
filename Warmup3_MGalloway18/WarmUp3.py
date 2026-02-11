@@ -1,5 +1,7 @@
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import Filename
+from panda3d.core import CollisionTraverser, CollisionHandlerPusher
+from panda3d.core import CollisionNode, CollisionSphere
 
 import math, sys, random
 
@@ -15,6 +17,10 @@ class MyApp(ShowBase):
         self.fighter = self.loader.loadModel("Assets/sphere")
         self.fighter.reparentTo(self.render)
         self.fighter.setColorScale(1.0, 0.0, 0.0, 1.0)
+
+        self.fighterCnode = self.fighter.attachNewNode(CollisionNode('fcnode'))
+        self.fighterCnode.node().addSolid(CollisionSphere(0, 0, 0, 1.8))
+        self.fighterCnode.show()
 
         self.accept('arrow_left', self.negativeX, [1])
         self.accept('arrow_left-up', self.negativeX, [0])
@@ -43,7 +49,20 @@ class MyApp(ShowBase):
             self.parent.instanceTo(self.placeholder2)
             x = x + 0.06
 
+        self.parentCnode = self.parent.attachNewNode(CollisionNode('pcnode'))
+        self.parentCnode.node().addSolid(CollisionSphere(0, 0, 0, 1.8))
+        self.parentCnode.show()
+
+        self.traverser = CollisionTraverser()
+        self.traverser.traverse(self.render)
+        self.traverser.showCollisions(self.render)
+
+        self.pusher = CollisionHandlerPusher()
+        self.pusher.addCollider(self.fighterCnode, self.fighter)  
+        self.traverser.addCollider(self.fighterCnode, self.pusher)
+
         self.accept('escape', self.quit)
+
 
 
     def negativeX(self, keyDown):
