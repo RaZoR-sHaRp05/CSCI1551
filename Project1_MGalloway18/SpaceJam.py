@@ -10,7 +10,7 @@ class Game(ShowBase):
         self.Universe.reparentTo(self.render)
         self.Universe.setScale(15000)
 
-        texUni = self.loader.loadTexture("Assets/Universe/starfield-in-blue.jpg")
+        texUni = self.loader.loadTexture("Assets/Textures/Sea-of-Stars.jpg")
         self.Universe.setTexture(texUni, 1)
 
         self.Planet1 = self.loader.loadModel("Assets/protoPlanet.x")
