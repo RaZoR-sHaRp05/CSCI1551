@@ -6,8 +6,6 @@ class Game(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
 
-       
-
         self.Universe = self.loader.loadModel("Assets/Universe/Universe.x")
         self.Universe.reparentTo(self.render)
         self.Universe.setScale(15000)
@@ -44,6 +42,13 @@ class Game(ShowBase):
         self.Planet6.reparentTo(self.render)
         self.Planet6.setPos(-560, -54, -267)
         self.Planet6.setScale(85)
+
+        self.SpaceStation = self.loader.loadModel("Assets/SpaceStation1B/spaceStation.x")
+        self.SpaceStation.reparentTo(self.render)
+
+        self.SpaceShip = self.loader.loadModel("Assets/Phaser/phaser.egg")
+        self.SpaceShip.reparentTo(self.render)
+        self.SpaceShip.setPos(0, 0, 50)
     
         
     
