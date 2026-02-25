@@ -31,7 +31,18 @@ class SpaceStation(ShowBase):
 
         self.modelNode.setName(nodeName)
 
-class SpaceShip(ShowBase):
+class Spaceship(ShowBase):
+    def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, posVec: Vec3, scaleVec: float):
+        self.modelNode = loader.loadModel(modelPath)
+        self.modelNode.reparentTo(parentNode)
+        self.modelNode.setPos(posVec)
+        self.modelNode.setScale(scaleVec)
+
+        self.modelNode.setName(nodeName)
+
+class Drone(ShowBase):
+    droneCount = 0
+
     def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, posVec: Vec3, scaleVec: float):
         self.modelNode = loader.loadModel(modelPath)
         self.modelNode.reparentTo(parentNode)

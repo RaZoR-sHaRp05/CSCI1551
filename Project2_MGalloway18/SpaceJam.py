@@ -1,11 +1,27 @@
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import Filename
 import SpaceJamClasses
+import DefensePaths
 
 class Game(ShowBase):
 
     def __init__(self):
         ShowBase.__init__(self)
+        fullCyle = 100
+        angle = 0
+
+        self.SetupScene()
+
+        for j in range(fullCyle):
+            SpaceJamClasses.Drone.droneCount += 1
+            nickName = "Drone" + str(SpaceJamClasses.Drone.droneCount)
+
+            self.DrawCircleXDefense(self.Planet2, nickName, angle)
+            self.DrawCircleYDefense(self.Planet4, nickName, angle)
+            self.DrawCircleZDefense(self.Planet5, nickName, angle)
+            angle = angle + 0.06
+            self.DrawCloudDefense(self.Planet1, nickName)
+            self.DrawBaseballDefense(self.SpaceStation, nickName, j, fullCyle, 2)
 
     def SetupScene(self):
         self.Universe = SpaceJamClasses.Universe(self.loader, "Assets/Universe/Universe.x", self.render, "Universe", "Assets/Textures/Sea-of-Stars.jpg", 15000)
@@ -19,8 +35,39 @@ class Game(ShowBase):
 
         self.SpaceStation = SpaceJamClasses.SpaceStation(self.loader, "Assets/SpaceStation1B/spaceStation.x", self.render, "SpaceStation", (0, 0, 0), 1)
 
-        self.SpaceShip = SpaceJamClasses.SpaceShip(self.loader, "Assets/Phaser/phaser.x", self.render, "SpaceShip", (0, 0, 50), 1)
+        self.Spaceship = SpaceJamClasses.Spaceship(self.loader, "Assets/Phaser/phaser.x", self.render, "Spaceship", (0, 0, 50), 1)
+
+    def DrawCircleXDefense(self, targetObject, droneName, angle):
+        unitVec = DefensePaths.CircleX(angle)
+        unitVec.normalize()
+        position = unitVec * (targetObject.modelNode.getSx() * 2 + 200) + targetObject.modelNode.getPos()
+        SpaceJamClasses.Drone(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, droneName, position, 2)
+
+    def DrawCircleYDefense(self, targetObject, droneName, angle):
+        unitVec = DefensePaths.CircleY(angle)
+        unitVec.normalize()
+        position = unitVec * (targetObject.modelNode.getSx() * 2 + 200) + targetObject.modelNode.getPos()
+        SpaceJamClasses.Drone(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, droneName, position, 2)
+        print(droneName)
+
+    def DrawCircleZDefense(self, targetObject, droneName, angle):
+        unitVec = DefensePaths.CircleZ(angle)
+        unitVec.normalize()
+        position = unitVec * (targetObject.modelNode.getSx() * 2 + 200) + targetObject.modelNode.getPos()
+        SpaceJamClasses.Drone(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, droneName, position, 2)
+        print(droneName)
+
+    def DrawCloudDefense(self, targetObject, droneName):
+        unitVec = DefensePaths.Cloud()
+        unitVec.normalize()
+        position = unitVec * (targetObject.modelNode.getSx() * 2 + 200) + targetObject.modelNode.getPos()
+        SpaceJamClasses.Drone(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, droneName, position, 2)
+
+    def DrawBaseballDefense(self, targetObject, droneName, step, numSeams, radius = 1):
+        unitVec = DefensePaths.BaseballSeams(step, numSeams, B = 0.4)
+        unitVec.normalize()
+        position = unitVec * radius * (targetObject.modelNode.getSx() * 1.3 + 150) + targetObject.modelNode.getPos()
+        SpaceJamClasses.Drone(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, droneName, position, 2)
 
 game = Game()
-game.SetupScene()
 game.run()
