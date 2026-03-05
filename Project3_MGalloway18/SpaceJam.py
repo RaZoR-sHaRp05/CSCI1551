@@ -11,6 +11,7 @@ class Game(ShowBase):
         angle = 0
 
         self.SetupScene()
+        self.SetCamera()
 
         for j in range(fullCyle):
             SpaceJamClasses.Drone.droneCount += 1
@@ -36,6 +37,12 @@ class Game(ShowBase):
         self.SpaceStation = SpaceJamClasses.SpaceStation(self.loader, "Assets/SpaceStation1B/spaceStation.x", self.render, "SpaceStation", (0, 0, 0), 1)
 
         self.Spaceship = SpaceJamClasses.Spaceship(self.loader, "Assets/Phaser/phaser.x", self.render, "Spaceship", (0, 0, 50), 1)
+        self.Spaceship.SetKeyBindings()
+
+    def SetCamera(self):
+        self.disableMouse()
+        self.camera.reparentTo(self.Spaceship.modelNode)
+        self.camera.setFluidPos(0, -100, 0)
 
     def DrawCircleXDefense(self, targetObject, droneName, angle):
         unitVec = DefensePaths.CircleX(angle)
@@ -48,14 +55,12 @@ class Game(ShowBase):
         unitVec.normalize()
         position = unitVec * (targetObject.modelNode.getSx() * 2 + 200) + targetObject.modelNode.getPos()
         SpaceJamClasses.Drone(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, droneName, position, 2)
-        print(droneName)
-
+    
     def DrawCircleZDefense(self, targetObject, droneName, angle):
         unitVec = DefensePaths.CircleZ(angle)
         unitVec.normalize()
         position = unitVec * (targetObject.modelNode.getSx() * 2 + 200) + targetObject.modelNode.getPos()
         SpaceJamClasses.Drone(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, droneName, position, 2)
-        print(droneName)
 
     def DrawCloudDefense(self, targetObject, droneName):
         unitVec = DefensePaths.Cloud()
