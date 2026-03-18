@@ -141,7 +141,7 @@ class Spaceship(SphereCollidableObject):
             inFront = aim * 150
             travVec = fireSolution + self.modelNode.getPos()
             tag = 'Missile' + str(Missile.missileCount + 1)
-            posVec = self.modelNode.getPos() + inFront
+            posVec = self.modelNode.getPos() + inFront + (6.5, 0, 4)
             currentMissile = Missile(loader, 'Assets/Phaser/phaser.egg', render, tag, posVec, 4.0)
 
             Missile.intervals[tag] = currentMissile.modelNode.posInterval(2.0, travVec, startPos = posVec, fluid = 1)

@@ -1,8 +1,10 @@
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import Filename
 from panda3d.core import CollisionTraverser, CollisionHandlerPusher
+from panda3d.core import *
 import SpaceJamClasses
 import DefensePaths
+from direct.gui.OnscreenImage import OnscreenImage
 
 class Game(ShowBase):
 
@@ -13,6 +15,7 @@ class Game(ShowBase):
 
         self.SetupScene()
         self.SetCamera()
+        self.EnableHUD()
 
         for j in range(fullCyle):
             SpaceJamClasses.Drone.droneCount += 1
@@ -51,6 +54,10 @@ class Game(ShowBase):
         self.disableMouse()
         self.camera.reparentTo(self.Spaceship.modelNode)
         self.camera.setFluidPos(0, -20, 0)
+
+    def EnableHUD(self):
+        self.Hud = OnscreenImage(image = "Assets/Hud/Reticle3b.png", pos = Vec3(0.065, 0, 0.05), scale = 0.1)
+        self.Hud.setTransparency(TransparencyAttrib.MAlpha)
 
     def DrawCircleXDefense(self, targetObject, droneName, angle):
         unitVec = DefensePaths.CircleX(angle)
