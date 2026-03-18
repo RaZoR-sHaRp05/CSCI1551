@@ -40,6 +40,12 @@ class Spaceship(SphereCollidableObject):
 
         self.modelNode.setName(nodeName)
 
+        self.reloadTime = 0.25
+        self.missileDistance = 4000
+        self.missileBay = 1
+
+        taskMgr.add(self.CheckIntervals, 'checkMissiles', 34)
+
     def Thrust(self, keyDown):
         if keyDown:
             taskMgr.add(self.ApplyThrust, 'forward-thrust')
@@ -126,6 +132,56 @@ class Spaceship(SphereCollidableObject):
 
         return Task.cont
     
+    def Fire(self):
+        if self.missileBay:
+            travRate = self.missileDistance
+            aim = render.getRelativeVector(self.modelNode, Vec3.forward())
+            aim.normalize()
+            fireSolution = aim * travRate
+            inFront = aim * 150
+            travVec = fireSolution + self.modelNode.getPos()
+            tag = 'Missile' + str(Missile.missileCount + 1)
+            posVec = self.modelNode.getPos() + inFront
+            currentMissile = Missile(loader, 'Assets/Phaser/phaser.egg', render, tag, posVec, 4.0)
+
+            Missile.intervals[tag] = currentMissile.modelNode.posInterval(2.0, travVec, startPos = posVec, fluid = 1)
+            Missile.intervals[tag].start()
+
+            self.missileBay -= 1
+        else:
+            if not taskMgr.hasTaskNamed('reload'):
+                print('Initializing reload...')
+                taskMgr.doMethodLater(0, self.Reload, 'reload')
+                return Task.cont
+            
+    def CheckIntervals(self, task):
+        for i in Missile.intervals:
+            if not Missile.intervals[i].isPlaying():
+                Missile.cNodes[i].detachNode()
+                Missile.fireModels[i].detachNode()
+
+                del Missile.intervals[i]
+                del Missile.fireModels[i]
+                del Missile.cNodes[i]
+                del Missile.collisionSolids[i]
+
+                print(i + ' has reached the end of its path.')
+
+                break
+        return Task.cont
+            
+    def Reload(self, task):
+        if task.time > self.reloadTime:
+            self.missileBay += 1
+            if self.missileBay > 1:
+                self.missileBay = 1
+            print("Reload complete.")
+            return Task.done
+        elif task.time <= self.reloadTime:
+            print("Reload proceeding...")
+            return Task.cont
+
+    
     def SetKeyBindings(self):
         self.accept('space', self.Thrust, [1])
         self.accept('space-up', self.Thrust, [0])
@@ -141,6 +197,29 @@ class Spaceship(SphereCollidableObject):
         self.accept('x-up', self.RotateRight, [0])
         self.accept('z', self.RotateLeft, [1])
         self.accept('z-up', self.RotateLeft, [0])
+        self.accept('f', self.Fire)
+
+class Missile(SphereCollidableObject):
+    fireModels = {}
+    cNodes = {}
+    collisionSolids = {}
+    intervals = {}
+    missileCount = 0
+
+    def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, posVec: Vec3, scaleVec: float = 1.0):
+        super(Missile, self).__init__(loader, modelPath, parentNode, nodeName, Vec3(0, 0, 0), 3.0)
+        self.modelNode.setScale(scaleVec)
+        self.modelNode.setPos(posVec)
+        Missile.missileCount += 1
+
+        Missile.fireModels[nodeName] = self.modelNode
+        Missile.cNodes[nodeName] = self.collisionNode
+
+        Missile.collisionSolids[nodeName] = self.collisionNode.node().getSolid(0)
+        Missile.cNodes[nodeName].show()
+
+        print("Firing torpedo #" + str(Missile.missileCount))
+
 
 class Drone(SphereCollidableObject):
     droneCount = 0
