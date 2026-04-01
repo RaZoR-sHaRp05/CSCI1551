@@ -1,8 +1,14 @@
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
+from panda3d.core import MouseWatcher, GraphicsWindow
 from direct.task import Task
 from CollideObjectBase import *
 from typing import Callable
+from panda3d.core import CollisionHandlerEvent, CollisionTraverser
+from direct.interval.LerpInterval import LerpFunc
+from direct.particles.ParticleEffect import ParticleEffect
+import re
+import sys
 
 class Universe(InverseSphereCollideObject):
     def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, texPath: str, posVec: Vec3, scaleVec: float):
@@ -32,7 +38,7 @@ class SpaceStation(CapsuleCollideObject):
         self.modelNode.setName(nodeName)
 
 class Spaceship(SphereCollidableObject):
-    def __init__(self, loader: Loader, accept: Callable[[str, Callable], None], modelPath: str, parentNode: NodePath, nodeName: str, posVec: Vec3, scaleVec: float):
+    def __init__(self, loader: Loader, accept: Callable[[str, Callable], None], traverser: CollisionTraverser, modelPath: str, parentNode: NodePath, nodeName: str, posVec: Vec3, scaleVec: float):
         super(Spaceship, self).__init__(loader, modelPath, parentNode, nodeName, Vec3(0.35, 0, 0.2), 1.5)
         self.accept = accept
         self.modelNode.setPos(posVec)
@@ -44,6 +50,24 @@ class Spaceship(SphereCollidableObject):
         self.missileDistance = 4000
         self.missileBay = 1
 
+        self.cntExplode = 0
+        self.explodeIntervals = {}
+
+        self.traverser = traverser
+
+        self.handler = CollisionHandlerEvent()
+        self.handler.addInPattern('into')
+        self.accept('into', self.HandleInto)
+
+        self.mouseWatcher = base.mouseWatcherNode
+        self.mouseSens = 1000
+
+        self.winXSize = base.win.getXSize()
+        self.winYSize = base.win.getYSize()
+        self.prevMouseXPos = 0
+        self.prevMouseYPos = 0
+
+        taskMgr.add(self.SetPlayerRotation, 'mousePos')
         taskMgr.add(self.CheckIntervals, 'checkMissiles', 34)
 
     def Thrust(self, keyDown):
@@ -143,6 +167,7 @@ class Spaceship(SphereCollidableObject):
             tag = 'Missile' + str(Missile.missileCount + 1)
             posVec = self.modelNode.getPos() + inFront + (6.5, 0, 4)
             currentMissile = Missile(loader, 'Assets/Phaser/phaser.egg', render, tag, posVec, 4.0)
+            self.traverser.addCollider(currentMissile.collisionNode, self.handler)
 
             Missile.intervals[tag] = currentMissile.modelNode.posInterval(2.0, travVec, startPos = posVec, fluid = 1)
             Missile.intervals[tag].start()
@@ -180,8 +205,62 @@ class Spaceship(SphereCollidableObject):
         elif task.time <= self.reloadTime:
             print("Reload proceeding...")
             return Task.cont
-
     
+    def HandleInto(self, entry):
+        fromNode = entry.getFromNodePath().getName()
+        print("fromNode: " + fromNode)
+        intoNode = entry.getIntoNodePath().getName()
+        print("intoNode: " + intoNode)
+        intoPosition = Vec3(entry.getSurfacePoint(render))
+
+        tempVar = fromNode.split('_')
+        print("tempVar: " + str(tempVar))
+        shooter = tempVar[0]
+        print("Shooter: " + str(shooter))
+        tempVar = intoNode.split('-')
+        print("TempVar1: " + str(tempVar))
+        tempVar = intoNode.split('_')
+        print("TempVar2: " + str(tempVar))
+        victim = tempVar[0]
+        print("Victim: " + str(victim))
+
+        pattern = r'[0-9]'
+        strippedString = re.sub(pattern, '', victim)
+
+        if (strippedString == "Drone" or strippedString == "Planet" or strippedString == "SpaceStation"):
+            print(victim, ' hit at ', intoPosition)
+            self.DestroyObject(victim, intoPosition)
+
+        print(shooter + ' is done.')
+        Missile.intervals[shooter].finish()
+
+    def DestroyObject(self, hitID, hitPosition):
+        nodeID = render.find(hitID)
+        nodeID.detachNode()
+
+        self.explodeNode.setPos(hitPosition)
+        self.Explode()
+
+    def Explode(self):
+        self.cntExplode += 1
+        tag = 'particles-' + str(self.cntExplode)
+
+        self.explodeIntervals[tag] = LerpFunc(self.ExplodeLight, duration = 4.0)
+        self.explodeIntervals[tag].start()
+
+    def ExplodeLight(self, t):
+        if t == 1.0 and self.explodeEffect:
+            self.explodeEffect.disable()
+        elif t == 0:
+            self.explodeEffect.start(self.explodeNode)
+
+    def SetParticles(self):
+        base.enableParticles()
+        self.explodeEffect = ParticleEffect()
+        self.explodeEffect.loadConfig("Assets/Part-Efx/basic_xpld_efx.ptf")
+        self.explodeEffect.setScale(20)
+        self.explodeNode = render.attachNewNode('ExplosionEffects')
+
     def SetKeyBindings(self):
         self.accept('space', self.Thrust, [1])
         self.accept('space-up', self.Thrust, [0])
@@ -198,6 +277,30 @@ class Spaceship(SphereCollidableObject):
         self.accept('z', self.RotateLeft, [1])
         self.accept('z-up', self.RotateLeft, [0])
         self.accept('f', self.Fire)
+        self.accept('escape', self.Quit)
+
+    def SetPlayerRotation(self, task):
+        delta = globalClock.getDt()
+        if self.mouseWatcher.hasMouse():
+            currentMouseXPos = self.mouseWatcher.getMouseX()
+            currentMouseYPos = self.mouseWatcher.getMouseY()
+
+            currentHead = self.modelNode.getH()
+            currentPitch = self.modelNode.getP()
+            print(currentHead, currentPitch)
+
+            hChange = -currentMouseXPos * delta * self.mouseSens
+            pChange = currentMouseYPos * delta * self.mouseSens
+
+            self.modelNode.setH(self.modelNode, hChange) 
+            self.modelNode.setP(self.modelNode, pChange)
+
+            base.win.movePointer(0, self.winXSize // 2, self.winYSize // 2)
+             
+        return task.cont
+    
+    def Quit(self):
+        sys.exit()
 
 class Missile(SphereCollidableObject):
     fireModels = {}
