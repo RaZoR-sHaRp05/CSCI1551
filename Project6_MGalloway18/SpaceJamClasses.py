@@ -1,6 +1,7 @@
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
 from panda3d.core import MouseWatcher, GraphicsWindow
+from pandac.PandaModules import WindowProperties
 from direct.task import Task
 from CollideObjectBase import *
 from typing import Callable
@@ -83,6 +84,8 @@ class Spaceship(SphereCollidableObject):
         taskMgr.add(self.CheckIntervals, 'checkMissiles', 34)
         taskMgr.add(self.BoostMeterLogic, 'fuel')
 
+        #self.SetParticles()
+
     def Thrust(self, keyDown):
         if keyDown:
             taskMgr.add(self.ApplyThrust, 'forward-thrust')
@@ -137,49 +140,7 @@ class Spaceship(SphereCollidableObject):
         #print(self.recharging)
         return task.cont
 
-    def LeftTurn(self, keyDown):
-        if keyDown:
-            taskMgr.add(self.ApplyLeftTurn, 'left-turn')
-        else:
-            taskMgr.remove('left-turn')
-
-    def ApplyLeftTurn(self, task):
-        rate = .5
-        self.modelNode.setH(self.modelNode, rate)
-
-        return Task.cont
     
-    def RightTurn(self, keyDown):
-        if keyDown:
-            taskMgr.add(self.ApplyRightTurn, 'right-turn')
-        else:
-            taskMgr.remove('right-turn')
-
-    def ApplyRightTurn(self, task):
-        rate = -.5
-        self.modelNode.setH(self.modelNode, rate)
-
-        return Task.cont
-    
-    def UpTurn(self, keyDown):
-        if keyDown:
-            taskMgr.add(self.ApplyUpTurn, 'up-turn')
-        else:
-            taskMgr.remove('up-turn')
-
-    def ApplyUpTurn(self, task):
-        rate = .5
-        self.modelNode.setP(self.modelNode, rate)
-
-        return Task.cont
-    
-    def DownTurn(self, keyDown):
-        if keyDown:
-            taskMgr.add(self.ApplyDownTurn, 'down-turn')
-        else:
-            taskMgr.remove('down-turn')
-
-    def ApplyDownTurn(self, task):
         rate = -.5
         self.modelNode.setP(self.modelNode, rate)
 
@@ -291,8 +252,8 @@ class Spaceship(SphereCollidableObject):
         nodeID = render.find(hitID)
         nodeID.detachNode()
 
-        self.explodeNode.setPos(hitPosition)
-        self.Explode()
+        #self.explodeNode.setPos(hitPosition)
+        #self.Explode()
 
     def Explode(self):
         self.cntExplode += 1
@@ -310,23 +271,15 @@ class Spaceship(SphereCollidableObject):
     def SetParticles(self):
         base.enableParticles()
         self.explodeEffect = ParticleEffect()
-        self.explodeEffect.loadConfig("Assets/Part-Efx/basic_xpld_efx.ptf")
+        self.explodeEffect.loadConfig('Assets/Part-Efx/basic_xpld_efx.ptf')
         self.explodeEffect.setScale(20)
         self.explodeNode = render.attachNewNode('ExplosionEffects')
 
     def SetKeyBindings(self):
         self.accept('space', self.Thrust, [1])
         self.accept('space-up', self.Thrust, [0])
-        self.accept('shift', self.Boost, [1])
-        self.accept('shift-up', self.Boost, [0])
-        self.accept('arrow_left', self.LeftTurn, [1])
-        self.accept('arrow_left-up', self.LeftTurn, [0])
-        self.accept('arrow_right', self.RightTurn, [1])
-        self.accept('arrow_right-up', self.RightTurn, [0])
-        self.accept('arrow_up', self.UpTurn, [1])
-        self.accept('arrow_up-up', self.UpTurn, [0])
-        self.accept('arrow_down', self.DownTurn, [1])
-        self.accept('arrow_down-up', self.DownTurn, [0])
+        self.accept('w', self.Boost, [1])
+        self.accept('w-up', self.Boost, [0])
         self.accept('x', self.RotateRight, [1])
         self.accept('x-up', self.RotateRight, [0])
         self.accept('z', self.RotateLeft, [1])
@@ -337,6 +290,9 @@ class Spaceship(SphereCollidableObject):
     def SetPlayerRotation(self, task):
         delta = globalClock.getDt()
         if self.mouseWatcher.hasMouse():
+            mouse = WindowProperties()
+            mouse.setCursorHidden(True)
+            base.win.requestProperties(mouse)
             currentMouseXPos = self.mouseWatcher.getMouseX()
             currentMouseYPos = self.mouseWatcher.getMouseY()
 
