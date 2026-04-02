@@ -7,6 +7,7 @@ import SpaceJamClasses
 import DefensePaths
 from direct.gui.OnscreenImage import OnscreenImage
 from direct.task import Task
+from direct.gui.DirectGui import *
 
 class Game(ShowBase):
 
@@ -14,6 +15,9 @@ class Game(ShowBase):
         ShowBase.__init__(self)
         fullCyle = 100
         angle = 0
+        
+        self.cTrav = CollisionTraverser()
+        self.cTrav.traverse(self.render)
 
         self.SetupScene()
         self.SetCamera()
@@ -30,8 +34,6 @@ class Game(ShowBase):
             self.DrawCloudDefense(self.Planet1, nickName)
             self.DrawBaseballDefense(self.SpaceStation, nickName, j, fullCyle, 2)
         
-        self.cTrav = CollisionTraverser()
-        self.cTrav.traverse(self.render)
         self.pusher = CollisionHandlerPusher()
         self.pusher.addCollider(self.Spaceship.collisionNode, self.Spaceship.modelNode)
         self.cTrav.addCollider(self.Spaceship.collisionNode, self.pusher)
@@ -60,30 +62,6 @@ class Game(ShowBase):
     def EnableHUD(self):
         self.Hud = OnscreenImage(image = "Assets/Hud/Reticle3b.png", pos = Vec3(0.065, 0, 0.05), scale = 0.1)
         self.Hud.setTransparency(TransparencyAttrib.MAlpha)
-
-    #def getMousePos(self, task):
-        xPos = 0
-        yPos = 0
-        xDir = ""
-        yDir = ""
-
-        if self.mouseWatcherNode.hasMouse():
-            xPos = self.mouseWatcherNode.getMouseX()
-            yPos = self.mouseWatcherNode.getMouseY()
-            
-        if xPos < 0:
-            xDir = "Left"
-        elif xPos > 0:
-            xDir = "Right"
-
-        if yPos < 0:
-            yDir = "Down"
-        elif yPos > 0:
-            yDir = "Up"
-
-        print(xDir, yDir)
-
-        #return task.cont
 
     def DrawCircleXDefense(self, targetObject, droneName, angle):
         unitVec = DefensePaths.CircleX(angle)
