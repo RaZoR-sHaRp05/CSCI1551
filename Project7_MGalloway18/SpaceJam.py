@@ -27,11 +27,11 @@ class Game(ShowBase):
             SpaceJamClasses.Drone.droneCount += 1
             nickName = "Drone" + str(SpaceJamClasses.Drone.droneCount)
 
-            self.DrawCircleXDefense(self.Planet2, nickName, angle)
+            #self.DrawCircleXDefense(self.Planet2, nickName, angle)
             self.DrawCircleYDefense(self.Planet4, nickName, angle)
             self.DrawCircleZDefense(self.Planet5, nickName, angle)
             angle = angle + 0.06
-            self.DrawCloudDefense(self.Planet1, nickName)
+            #self.DrawCloudDefense(self.Planet1, nickName)
             self.DrawBaseballDefense(self.SpaceStation, nickName, j, fullCyle, 2)
         
         self.pusher = CollisionHandlerPusher()
@@ -51,8 +51,14 @@ class Game(ShowBase):
 
         self.SpaceStation = SpaceJamClasses.SpaceStation(self.loader, "Assets/SpaceStation1B/spaceStation.egg", self.render, "SpaceStation", (0, 0, 0), 1)
 
+
         self.Spaceship = SpaceJamClasses.Spaceship(self.loader, self.accept, self.cTrav, "Assets/Dumbledore/Dumbledore.egg", self.render, "Spaceship", (0, 0, 50), 1)
         self.Spaceship.SetKeyBindings()
+        
+        self.Sentinel1 = SpaceJamClasses.Orbiter(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, "Drone", 6.0, self.Planet6, 500, "MLB", self.Spaceship)
+        self.Sentinel2 = SpaceJamClasses.Orbiter(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, "Drone", 6.0, self.Planet3, 500, "MLB", self.Spaceship)
+        self.Sentinel3 = SpaceJamClasses.Orbiter(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, "Drone", 6.0, self.Planet1, 900, "Cloud", self.Spaceship)
+        self.Sentinel4 = SpaceJamClasses.Orbiter(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, "Drone", 6.0, self.Planet2, 900, "Cloud", self.Spaceship)
 
     def SetCamera(self):
         self.disableMouse()
