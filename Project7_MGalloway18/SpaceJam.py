@@ -39,6 +39,8 @@ class Game(ShowBase):
         self.cTrav.addCollider(self.Spaceship.collisionNode, self.pusher)
         self.cTrav.showCollisions(self.render)
 
+        #taskMgr.add(self.UpdateCamera, 'camera')
+
     def SetupScene(self):
         self.Universe = SpaceJamClasses.Universe(self.loader, "Assets/Universe/Universe.x", self.render, "Universe", "Assets/Textures/Sea-of-Stars.jpg", (0, 0, 0), 15000)
 
@@ -64,6 +66,15 @@ class Game(ShowBase):
         self.disableMouse()
         self.camera.reparentTo(self.Spaceship.modelNode)
         self.camera.setFluidPos(0, -20, 0)
+
+    #def UpdateCamera(self, task):
+        #self.camera.setX(self.Spaceship.modelNode.getX() - 10 )
+        #self.camera.setY(self.Spaceship.modelNode.getY())
+        #self.camera.setZ(self.Spaceship.modelNode.getZ())
+        #self.camera.setHpr(self.Spaceship.modelNode, self.Spaceship.modelNode.getHpr())
+        #self.camera.lookAt(self.Spaceship.modelNode)
+
+        return Task.cont
 
     def EnableHUD(self):
         self.Hud = OnscreenImage(image = "Assets/Hud/Reticle3b.png", pos = Vec3(0.065, 0, 0.05), scale = 0.1)

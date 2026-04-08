@@ -6,7 +6,8 @@ from direct.task import Task
 from CollideObjectBase import *
 from typing import Callable
 from panda3d.core import CollisionHandlerEvent, CollisionTraverser
-from direct.interval.LerpInterval import LerpFunc
+from direct.interval.LerpInterval import LerpFunc, LerpPosHprInterval, LerpHprInterval
+from direct.interval.IntervalGlobal import *
 from direct.particles.ParticleEffect import ParticleEffect
 from direct.gui.DirectGui import *
 import re
@@ -56,6 +57,8 @@ class Spaceship(SphereCollidableObject):
         self.currentSpeed = self.baseSpeed
         self.maxBoost = 300
         self.currentBoost = self.maxBoost
+        self.rollDepletion = 50
+        self.isRolling = False
         self.recharging = False
 
         self.energyMeter = EnergyMeter(self.maxBoost, self.currentBoost)
@@ -140,12 +143,6 @@ class Spaceship(SphereCollidableObject):
         #print("Boost remaining: ", self.currentBoost)
         #print(self.recharging)
         return task.cont
-
-    
-        rate = -.5
-        self.modelNode.setP(self.modelNode, rate)
-
-        return Task.cont
     
     def RotateRight(self, keyDown):
         if keyDown:
@@ -171,6 +168,58 @@ class Spaceship(SphereCollidableObject):
 
         return Task.cont
     
+    def RollRight(self):
+        direction = render.getRelativeVector(self.modelNode, Vec3.right())
+        forwardVec = render.getRelativeVector(self.modelNode, Vec3.forward())
+        direction.normalize
+        rotation = self.modelNode.getHpr() + (0, 0, 720)
+        camRotation = base.camera.getHpr() + (0, 0, -720) 
+
+        if self.isMoving == False:
+            target = self.modelNode.getPos() + (direction * 100)
+        elif self.isMoving == True: 
+            target = self.modelNode.getPos() + (direction * 100) + (forwardVec * 400) 
+
+        rightAnim = LerpPosHprInterval(self.modelNode, 0.5, target, rotation)
+        cameraAnim = LerpHprInterval(base.camera, 0.5, camRotation)
+        
+        sequence = Parallel(rightAnim, cameraAnim)
+
+        if self.isRolling == False and self.currentBoost > self.rollDepletion and self.recharging == False:
+            self.isRolling = True
+            sequence.start()
+            self.currentBoost -= self.rollDepletion
+            self.energyMeter.Update(self.currentBoost)
+            taskMgr.doMethodLater(0.5, self.EndRolling, 'EndRollState')
+
+    def RollLeft(self):
+        direction = render.getRelativeVector(self.modelNode, Vec3.left())
+        forwardVec = render.getRelativeVector(self.modelNode, Vec3.forward())
+        direction.normalize
+        rotation = self.modelNode.getHpr() + (0, 0, -720)
+        camRotation = base.camera.getHpr() + (0, 0, 720) 
+
+        if self.isMoving == False:
+            target = self.modelNode.getPos() + (direction * 100)
+        elif self.isMoving == True: 
+            target = self.modelNode.getPos() + (direction * 100) + (forwardVec * 400) 
+
+        leftAnim = LerpPosHprInterval(self.modelNode, 0.5, target, rotation)
+        cameraAnim = LerpHprInterval(base.camera, 0.5, camRotation)
+        
+        sequence = Parallel(leftAnim, cameraAnim)
+
+        if self.isRolling == False and self.currentBoost > self.rollDepletion and self.recharging == False:
+            self.isRolling = True
+            sequence.start()
+            self.currentBoost -= self.rollDepletion
+            self.energyMeter.Update(self.currentBoost)
+            taskMgr.doMethodLater(0.5, self.EndRolling, 'EndRollState')
+
+    def EndRolling(self, task):
+        self.isRolling = False 
+        return Task.done
+
     def Fire(self):
         if self.missileBay:
             travRate = self.missileDistance
@@ -277,15 +326,17 @@ class Spaceship(SphereCollidableObject):
         self.explodeNode = render.attachNewNode('ExplosionEffects')
 
     def SetKeyBindings(self):
-        self.accept('space', self.Thrust, [1])
-        self.accept('space-up', self.Thrust, [0])
-        self.accept('w', self.Boost, [1])
-        self.accept('w-up', self.Boost, [0])
-        self.accept('x', self.RotateRight, [1])
-        self.accept('x-up', self.RotateRight, [0])
-        self.accept('z', self.RotateLeft, [1])
-        self.accept('z-up', self.RotateLeft, [0])
-        self.accept('f', self.Fire)
+        self.accept('w', self.Thrust, [1])
+        self.accept('w-up', self.Thrust, [0])
+        self.accept('space', self.Boost, [1])
+        self.accept('space-up', self.Boost, [0])
+        self.accept('d', self.RotateRight, [1])
+        self.accept('d-up', self.RotateRight, [0])
+        self.accept('a', self.RotateLeft, [1])
+        self.accept('a-up', self.RotateLeft, [0])
+        self.accept('e', self.RollRight)
+        self.accept('q', self.RollLeft)
+        self.accept('mouse1', self.Fire)
         self.accept('escape', self.Quit)
 
     def SetPlayerRotation(self, task):
