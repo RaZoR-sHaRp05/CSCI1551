@@ -11,7 +11,6 @@ from direct.interval.IntervalGlobal import *
 from direct.particles.ParticleEffect import ParticleEffect
 from direct.gui.DirectGui import *
 import re
-import sys
 import DefensePaths
 
 class Universe(InverseSphereCollideObject):
@@ -349,7 +348,6 @@ class Spaceship(SphereCollidableObject):
         self.accept('e', self.RollRight)
         self.accept('q', self.RollLeft)
         self.accept('mouse1', self.Fire)
-        self.accept('escape', self.Quit)
 
     def SetPlayerRotation(self, task):
         delta = globalClock.getDt()
@@ -394,9 +392,6 @@ class Spaceship(SphereCollidableObject):
             self.sequence.setT(self.currentTime)
             self.sequence.resume()
             self.Paused = False
-
-    def Quit(self):
-        sys.exit()
 
 class EnergyMeter(ShowBase):
     def __init__(self, max: int, current: float):

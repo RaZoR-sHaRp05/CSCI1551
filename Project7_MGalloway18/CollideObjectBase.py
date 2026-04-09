@@ -27,10 +27,10 @@ class SphereCollidableObject(CollidableObject):
     def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, colPositionVec: Vec3, colRadius: float):
         super(SphereCollidableObject, self).__init__(loader, modelPath, parentNode, nodeName)
         self.collisionNode.node().addSolid(CollisionSphere(colPositionVec, colRadius))
-        self.collisionNode.show()
+        #self.collisionNode.show()
 
 class CapsuleCollideObject(CollidableObject):
     def __init__(self, loader: Loader, modelPath: str, parentNode: NodePath, nodeName: str, ax: float, ay: float, az: float, bx: float, by: float, bz: float, r: float):
         super(CapsuleCollideObject, self).__init__(loader, modelPath, parentNode, nodeName)
         self.collisionNode.node().addSolid(CollisionCapsule(ax, ay, az, bx, by, bz, r))
-        self.collisionNode.show()
+        #self.collisionNode.show()

@@ -8,6 +8,7 @@ import DefensePaths
 from direct.gui.OnscreenImage import OnscreenImage
 from direct.task import Task
 from direct.gui.DirectGui import *
+import sys
 
 class Game(ShowBase):
 
@@ -24,7 +25,18 @@ class Game(ShowBase):
         self.SetupScene()
         self.SetCamera()
         self.EnableHUD()
-        self.pauseMenu = PauseMenu()
+        
+        self.title = OnscreenText(text = "PAUSED", scale = 0.3, pos = (0, 0.6))
+        self.title["fg"] = (1, 1, 1, 1)
+        self.title.hide()
+        self.resumeButton = DirectButton(text = "RESUME", scale = 0.2, pos = (0, 0, 0.2))
+        self.resumeButton["command"] = self.Pause
+        self.resumeButton["state"] = DGG.DISABLED
+        self.resumeButton.hide()
+        self.quitButton = DirectButton(text = "QUIT", scale = 0.2, pos = (0, 0, -0.4))
+        self.quitButton["state"] = DGG.DISABLED
+        self.quitButton['command'] = self.Quit
+        self.quitButton.hide()
 
         for j in range(fullCyle):
             SpaceJamClasses.Drone.droneCount += 1
@@ -42,7 +54,7 @@ class Game(ShowBase):
         self.cTrav.addCollider(self.Spaceship.collisionNode, self.pusher)
         self.cTrav.showCollisions(self.render)
 
-        self.accept('p', self.Pause)
+        self.accept('escape', self.Pause)
 
         #taskMgr.add(self.UpdateCamera, 'camera')
 
@@ -74,7 +86,7 @@ class Game(ShowBase):
 
     def Pause(self):
         if not self.paused:
-            self.pauseMenu.Show()
+            self.Show()
             self.Spaceship.Pause()
             self.Sentinel1.Pause()
             self.Sentinel2.Pause()
@@ -82,7 +94,7 @@ class Game(ShowBase):
             self.Sentinel4.Pause()
             self.paused = True
         else:
-            self.pauseMenu.Hide()
+            self.Hide()
             self.Spaceship.Pause()
             self.Sentinel1.Pause()
             self.Sentinel2.Pause()
@@ -90,16 +102,22 @@ class Game(ShowBase):
             self.Sentinel4.Pause()
             self.paused = False
 
-            
+    def Show(self):
+        self.title.show()
+        self.resumeButton.show()
+        self.resumeButton["state"] = DGG.NORMAL
+        self.quitButton.show()
+        self.quitButton["state"] = DGG.NORMAL
 
-    #def UpdateCamera(self, task):
-        #self.camera.setX(self.Spaceship.modelNode.getX() - 10 )
-        #self.camera.setY(self.Spaceship.modelNode.getY())
-        #self.camera.setZ(self.Spaceship.modelNode.getZ())
-        #self.camera.setHpr(self.Spaceship.modelNode, self.Spaceship.modelNode.getHpr())
-        #self.camera.lookAt(self.Spaceship.modelNode)
+    def Hide(self):
+        self.title.hide()
+        self.resumeButton.hide()
+        self.resumeButton["state"] = DGG.DISABLED
+        self.quitButton.hide()
+        self.quitButton["state"] = DGG.DISABLED
 
-        return Task.cont
+    def Quit(self):
+        sys.exit()
 
     def EnableHUD(self):
         self.Hud = OnscreenImage(image = "Assets/Hud/Reticle3b.png", pos = Vec3(0.065, 0, 0.05), scale = 0.1)
@@ -135,30 +153,5 @@ class Game(ShowBase):
         position = unitVec * radius * (targetObject.modelNode.getSx() * 1.3 + 150) + targetObject.modelNode.getPos()
         SpaceJamClasses.Drone(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, droneName, position, 2)
 
-class PauseMenu(ShowBase):
-    def __init__(self):
-        self.function = game.Pause()
-
-        self.title = OnscreenText(text = "PAUSED", scale = 0.3, pos = (0, 0.6))
-        self.title["fg"] = (1, 1, 1, 1)
-        self.title.hide()
-        self.resumeButton = DirectButton(text = "RESUME", scale = 0.2, pos = (0, 0, 0.2))
-        self.resumeButton["command"] = self.function
-        self.resumeButton["state"] = DGG.DISABLED
-        self.resumeButton.hide()
-        self.quitButton = DirectButton(text = "QUIT", scale = 0.2, pos = (0, 0, -0.4))
-        self.quitButton["state"] = DGG.DISABLED
-        self.quitButton.hide()
-
-    def Show(self):
-        self.title.show()
-        self.resumeButton.show()
-        self.resumeButton["state"] = DGG.NORMAL
-        self.quitButton.show()
-
-    def Hide(self):
-        self.title.hide()
-        self.resumeButton.hide()
-        self.quitButton.hide()
 game = Game()
 game.run()
