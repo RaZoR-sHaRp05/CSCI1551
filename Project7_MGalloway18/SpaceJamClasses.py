@@ -88,10 +88,15 @@ class Spaceship(SphereCollidableObject):
         taskMgr.add(self.CheckIntervals, 'checkMissiles', 34)
         taskMgr.add(self.BoostMeterLogic, 'fuel')
 
+        self.sequence = Parallel()
+        self.Paused = False
+        self.currentTime = 0
+        self.travVec = (0, 0, 0)
+
         #self.SetParticles()
 
     def Thrust(self, keyDown):
-        if keyDown:
+        if keyDown and not self.Paused:
             taskMgr.add(self.ApplyThrust, 'forward-thrust')
             self.isMoving = True
         else:
@@ -130,7 +135,7 @@ class Spaceship(SphereCollidableObject):
                 self.currentBoost = 0
             
             self.energyMeter.Update(self.currentBoost)
-        else:
+        elif not self.Paused:
             self.currentBoost += 0.7
 
             if self.currentBoost > self.maxBoost:
@@ -145,7 +150,7 @@ class Spaceship(SphereCollidableObject):
         return task.cont
     
     def RotateRight(self, keyDown):
-        if keyDown:
+        if keyDown and not self.Paused:
             taskMgr.add(self.ApplyRotateRight, 'rotate-right')
         else:
             taskMgr.remove('rotate-right')
@@ -157,7 +162,7 @@ class Spaceship(SphereCollidableObject):
         return Task.cont
     
     def RotateLeft(self, keyDown):
-        if keyDown:
+        if keyDown and not self.Paused:
             taskMgr.add(self.ApplyRotateLeft, 'rotate-left')
         else:
             taskMgr.remove('rotate-left')
@@ -183,11 +188,11 @@ class Spaceship(SphereCollidableObject):
         rightAnim = LerpPosHprInterval(self.modelNode, 0.5, target, rotation)
         cameraAnim = LerpHprInterval(base.camera, 0.5, camRotation)
         
-        sequence = Parallel(rightAnim, cameraAnim)
+        self.sequence = Parallel(rightAnim, cameraAnim)
 
-        if self.isRolling == False and self.currentBoost > self.rollDepletion and self.recharging == False:
+        if not self.isRolling and self.currentBoost > self.rollDepletion and not self.recharging and not self.Paused:
             self.isRolling = True
-            sequence.start()
+            self.sequence.start()
             self.currentBoost -= self.rollDepletion
             self.energyMeter.Update(self.currentBoost)
             taskMgr.doMethodLater(0.5, self.EndRolling, 'EndRollState')
@@ -221,31 +226,36 @@ class Spaceship(SphereCollidableObject):
         return Task.done
 
     def Fire(self):
-        if self.missileBay:
-            travRate = self.missileDistance
-            aim = render.getRelativeVector(self.modelNode, Vec3.forward())
-            aim.normalize()
-            fireSolution = aim * travRate
-            inFront = aim * 150
-            travVec = fireSolution + self.modelNode.getPos()
-            tag = 'Missile' + str(Missile.missileCount + 1)
-            posVec = self.modelNode.getPos() + inFront + (6.5, 0, 4)
-            currentMissile = Missile(loader, 'Assets/Phaser/phaser.egg', render, tag, posVec, 4.0)
-            self.traverser.addCollider(currentMissile.collisionNode, self.handler)
+        if not self.Paused:
+            if self.missileBay:
+                travRate = self.missileDistance
+                aim = render.getRelativeVector(self.modelNode, Vec3.forward())
+                aim.normalize()
+                fireSolution = aim * travRate
+                inFront = aim * 150
+                self.travVec = fireSolution + self.modelNode.getPos()
+                tag = 'Missile' + str(Missile.missileCount + 1)
+                posVec = self.modelNode.getPos() + inFront + (6.5, 0, 4)
+                currentMissile = Missile(loader, 'Assets/Phaser/phaser.egg', render, tag, posVec, 4.0)
+                self.traverser.addCollider(currentMissile.collisionNode, self.handler)
 
-            Missile.intervals[tag] = currentMissile.modelNode.posInterval(2.0, travVec, startPos = posVec, fluid = 1)
-            Missile.intervals[tag].start()
+                Missile.intervals[tag] = currentMissile.modelNode.posInterval(2.0, self.travVec, startPos = posVec, fluid = 1)
+                Missile.intervals[tag].start()
 
-            self.missileBay -= 1
-        else:
-            if not taskMgr.hasTaskNamed('reload'):
-                print('Initializing reload...')
-                taskMgr.doMethodLater(0, self.Reload, 'reload')
-                return Task.cont
+                self.missileBay -= 1
+            else:
+                if not taskMgr.hasTaskNamed('reload'):
+                    print('Initializing reload...')
+                    taskMgr.doMethodLater(0, self.Reload, 'reload')
+                    return Task.cont
             
     def CheckIntervals(self, task):
         for i in Missile.intervals:
-            if not Missile.intervals[i].isPlaying():
+            if self.Paused:
+                Missile.intervals[i].pause()
+            elif not self.Paused and Missile.intervals[i].isPlaying() == False:
+                Missile.intervals[i].resume()
+            elif not Missile.intervals[i].isPlaying() and not self.Paused:
                 Missile.cNodes[i].detachNode()
                 Missile.fireModels[i].detachNode()
 
@@ -257,6 +267,8 @@ class Spaceship(SphereCollidableObject):
                 print(i + ' has reached the end of its path.')
 
                 break
+            #print(Missile.fireModels[i].getX())
+            #print(self.travVec[0])
         return Task.cont
             
     def Reload(self, task):
@@ -341,7 +353,7 @@ class Spaceship(SphereCollidableObject):
 
     def SetPlayerRotation(self, task):
         delta = globalClock.getDt()
-        if self.mouseWatcher.hasMouse():
+        if self.mouseWatcher.hasMouse() and not self.Paused:
             mouse = WindowProperties()
             mouse.setCursorHidden(True)
             base.win.requestProperties(mouse)
@@ -368,6 +380,21 @@ class Spaceship(SphereCollidableObject):
              
         return task.cont
     
+    def Pause(self):
+        if not self.Paused:
+            mouse = WindowProperties()
+            mouse.setCursorHidden(False)
+            base.win.requestProperties(mouse)
+            taskMgr.remove('forward-thrust')
+            self.currentTime = self.sequence.getT()
+            self.sequence.pause()
+            self.Paused = True
+        elif self.Paused:
+            base.clock.setMode(ClockObject.MNormal)
+            self.sequence.setT(self.currentTime)
+            self.sequence.resume()
+            self.Paused = False
+
     def Quit(self):
         sys.exit()
 
@@ -434,6 +461,8 @@ class Orbiter(SphereCollidableObject):
         self.orbitRadius = orbitRadius
         self.staringAt = staringAt
         Orbiter.numOrbits += 1
+        self.paused = False
+        self.pos = 0
 
         self.cloudClock = 0
         
@@ -442,8 +471,9 @@ class Orbiter(SphereCollidableObject):
 
     def Orbit(self, task):
         if self.orbitType == "MLB":
-            positionVec = DefensePaths.BaseballSeams(task.time * Orbiter.velocity, self.numOrbits, 2.0)
+            positionVec = DefensePaths.BaseballSeams(self.pos * Orbiter.velocity, self.numOrbits, 2.0)
             self.modelNode.setPos(positionVec * self.orbitRadius + self.orbitObject.modelNode.getPos())
+            self.pos += 0.05
         elif self.orbitType == "Cloud":
             if self.cloudClock < Orbiter.cloudTimer:
                 self.cloudClock += 1
@@ -453,4 +483,14 @@ class Orbiter(SphereCollidableObject):
                 self.modelNode.setPos(positionVec * self.orbitRadius + self.orbitObject.modelNode.getPos())
 
         self.modelNode.lookAt(self.staringAt.modelNode)
+
+       
         return task.cont
+    
+    def Pause(self):
+        if not self.paused:
+            taskMgr.remove(self.taskFlag)
+            self.paused = True
+        else:
+            taskMgr.add(self.Orbit, self.taskFlag)
+            self.paused = False
