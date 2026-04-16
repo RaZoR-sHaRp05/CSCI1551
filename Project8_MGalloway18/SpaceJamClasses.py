@@ -41,7 +41,7 @@ class SpaceStation(CapsuleCollideObject):
         self.modelNode.setName(nodeName)
 
 class Spaceship(SphereCollidableObject):
-    def __init__(self, loader: Loader, accept: Callable[[str, Callable], None], traverser: CollisionTraverser, modelPath: str, parentNode: NodePath, nodeName: str, posVec: Vec3, scaleVec: float):
+    def __init__(self, loader: Loader, camera, accept: Callable[[str, Callable], None], traverser: CollisionTraverser, modelPath: str, parentNode: NodePath, nodeName: str, posVec: Vec3, scaleVec: float):
         super(Spaceship, self).__init__(loader, modelPath, parentNode, nodeName, Vec3(0.35, 0, 0.2), 1.5)
         self.accept = accept
         self.modelNode.setPos(posVec)
@@ -49,9 +49,12 @@ class Spaceship(SphereCollidableObject):
 
         self.modelNode.setName(nodeName)
 
+        self.dummy = camera
+
         self.isMoving = False
         self.isBoosting = False
-        self.baseSpeed = 5
+        self.baseSpeed = 0
+        self.maxSpeed = 5
         self.boostSpeed = 30
         self.currentSpeed = self.baseSpeed
         self.maxBoost = 300
@@ -86,6 +89,7 @@ class Spaceship(SphereCollidableObject):
         taskMgr.add(self.SetPlayerRotation, 'mousePos')
         taskMgr.add(self.CheckIntervals, 'checkMissiles', 34)
         taskMgr.add(self.BoostMeterLogic, 'fuel')
+        taskMgr.add(self.ApplyThrust, 'moveForward')
 
         self.sequence = Parallel()
         self.Paused = False
@@ -96,10 +100,12 @@ class Spaceship(SphereCollidableObject):
 
     def Thrust(self, keyDown):
         if keyDown and not self.Paused:
-            taskMgr.add(self.ApplyThrust, 'forward-thrust')
+            taskMgr.remove('slow-down')
+            taskMgr.add(self.Accelerate, 'forward-thrust')
             self.isMoving = True
         else:
             taskMgr.remove('forward-thrust')
+            taskMgr.add(self.Decelerate, 'slow-down')
             self.isMoving = False
     
     def ApplyThrust(self, task):
@@ -107,7 +113,18 @@ class Spaceship(SphereCollidableObject):
         trajectory.normalize()
         self.modelNode.setFluidPos(self.modelNode.getPos() + trajectory * self.currentSpeed)
 
+        print(self.currentSpeed)
         return Task.cont
+    
+    def Accelerate(self, task):
+        if self.currentSpeed < self.maxSpeed:
+            self.currentSpeed += 0.05
+        return task.cont  
+
+    def Decelerate(self, task):
+        if self.currentSpeed > 0:
+            self.currentSpeed -= 0.05
+        return task.cont
     
     def Boost(self, keyDown):
         if keyDown and self.isMoving == True and self.recharging == False:
@@ -116,7 +133,7 @@ class Spaceship(SphereCollidableObject):
         elif not keyDown and self.isMoving == True:
             taskMgr.remove('boost')
             self.isBoosting = False
-            self.currentSpeed = self.baseSpeed
+            self.currentSpeed = self.maxSpeed
 
     def ApplyBoost(self, task):
         self.currentSpeed = self.boostSpeed
@@ -187,7 +204,7 @@ class Spaceship(SphereCollidableObject):
         rightAnim = LerpPosHprInterval(self.modelNode, 0.5, target, rotation)
         cameraAnim = LerpHprInterval(base.camera, 0.5, camRotation)
         
-        self.sequence = Parallel(rightAnim, cameraAnim)
+        self.sequence = Parallel(rightAnim)
 
         if not self.isRolling and self.currentBoost > self.rollDepletion and not self.recharging and not self.Paused:
             self.isRolling = True
@@ -211,7 +228,7 @@ class Spaceship(SphereCollidableObject):
         leftAnim = LerpPosHprInterval(self.modelNode, 0.5, target, rotation)
         cameraAnim = LerpHprInterval(base.camera, 0.5, camRotation)
         
-        sequence = Parallel(leftAnim, cameraAnim)
+        sequence = Parallel(leftAnim)
 
         if self.isRolling == False and self.currentBoost > self.rollDepletion and self.recharging == False:
             self.isRolling = True
@@ -370,6 +387,9 @@ class Spaceship(SphereCollidableObject):
 
             hChange = -currentMouseXPos * delta * self.mouseSens
             pChange = currentMouseYPos * delta * self.mouseSens
+
+            self.dummy.setH(self.dummy, hChange) 
+            self.dummy.setP(self.dummy, pChange)
 
             self.modelNode.setH(self.modelNode, hChange) 
             self.modelNode.setP(self.modelNode, pChange)

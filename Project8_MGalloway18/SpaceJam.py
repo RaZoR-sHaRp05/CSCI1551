@@ -1,4 +1,5 @@
 from direct.showbase.ShowBase import ShowBase
+from panda3d.core import PandaNode, NodePath
 from panda3d.core import Filename
 from panda3d.core import CollisionTraverser, CollisionHandlerPusher
 from panda3d.core import MouseWatcher
@@ -22,6 +23,9 @@ class Game(ShowBase):
 
         self.paused = False
 
+        self.dummy = NodePath('dummy')
+        self.dummy.reparentTo(self.render)
+
         self.SetupScene()
         self.SetCamera()
         self.EnableHUD()
@@ -37,6 +41,7 @@ class Game(ShowBase):
         self.quitButton["state"] = DGG.DISABLED
         self.quitButton['command'] = self.Quit
         self.quitButton.hide()
+
 
         for j in range(fullCyle):
             SpaceJamClasses.Drone.droneCount += 1
@@ -55,6 +60,7 @@ class Game(ShowBase):
         self.cTrav.showCollisions(self.render)
 
         self.accept('escape', self.Pause)
+        taskMgr.add(self.UpdateCamera, 'moveCamera')
 
         #taskMgr.add(self.UpdateCamera, 'camera')
 
@@ -71,7 +77,7 @@ class Game(ShowBase):
         self.SpaceStation = SpaceJamClasses.SpaceStation(self.loader, "Assets/SpaceStation1B/spaceStation.egg", self.render, "SpaceStation", (0, 0, 0), 1)
 
 
-        self.Spaceship = SpaceJamClasses.Spaceship(self.loader, self.accept, self.cTrav, "Assets/Dumbledore/Dumbledore.egg", self.render, "Spaceship", (0, 0, 50), 1)
+        self.Spaceship = SpaceJamClasses.Spaceship(self.loader, self.dummy, self.accept, self.cTrav, "Assets/Dumbledore/Dumbledore.egg", self.render, "Spaceship", (0, 0, 50), 1)
         self.Spaceship.SetKeyBindings()
         
         self.Sentinel1 = SpaceJamClasses.Orbiter(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, "Drone", 6.0, self.Planet6, 500, "MLB", self.Spaceship)
@@ -81,8 +87,13 @@ class Game(ShowBase):
 
     def SetCamera(self):
         self.disableMouse()
-        self.camera.reparentTo(self.Spaceship.modelNode)
+        self.camera.reparentTo(self.dummy)
         self.camera.setFluidPos(0, -20, 0)
+
+    def UpdateCamera(self, task):
+        self.dummy.setPos(self.Spaceship.modelNode.getPos())
+
+        return task.cont
 
     def Pause(self):
         if not self.paused:
