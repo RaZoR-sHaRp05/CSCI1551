@@ -174,6 +174,7 @@ class Spaceship(SphereCollidableObject):
     def ApplyRotateRight(self, task):
         rate = .5
         self.modelNode.setR(self.modelNode, rate)
+        self.dummy.setR(self.dummy, rate)
 
         return Task.cont
     
@@ -186,6 +187,7 @@ class Spaceship(SphereCollidableObject):
     def ApplyRotateLeft(self, task):
         rate = -.5
         self.modelNode.setR(self.modelNode, rate)
+        self.dummy.setR(self.dummy, rate)
 
         return Task.cont
     
