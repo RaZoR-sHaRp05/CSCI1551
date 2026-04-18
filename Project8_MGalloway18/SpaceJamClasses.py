@@ -54,7 +54,7 @@ class Spaceship(SphereCollidableObject):
         self.isMoving = False
         self.isBoosting = False
         self.baseSpeed = 0
-        self.maxSpeed = 5
+        self.maxSpeed = 10
         self.boostSpeed = 30
         self.currentSpeed = self.baseSpeed
         self.maxBoost = 300
@@ -87,6 +87,7 @@ class Spaceship(SphereCollidableObject):
         self.prevMouseYPos = 0
 
         taskMgr.add(self.SetPlayerRotation, 'mousePos')
+        taskMgr.doMethodLater(0, self.Temp, 't')
         taskMgr.add(self.CheckIntervals, 'checkMissiles', 34)
         taskMgr.add(self.BoostMeterLogic, 'fuel')
         taskMgr.add(self.ApplyThrust, 'moveForward')
@@ -113,17 +114,23 @@ class Spaceship(SphereCollidableObject):
         trajectory.normalize()
         self.modelNode.setFluidPos(self.modelNode.getPos() + trajectory * self.currentSpeed)
 
-        print(self.currentSpeed)
+        #print(self.currentSpeed)
         return Task.cont
     
     def Accelerate(self, task):
         if self.currentSpeed < self.maxSpeed:
             self.currentSpeed += 0.05
+
+        if base.camera.getY() > -30:
+            base.camera.setY(base.camera.getY() - 0.15)
         return task.cont  
 
     def Decelerate(self, task):
         if self.currentSpeed > 0:
             self.currentSpeed -= 0.05
+
+        if base.camera.getY() < -8:
+            base.camera.setY(base.camera.getY() + 0.15)
         return task.cont
     
     def Boost(self, keyDown):
@@ -232,7 +239,7 @@ class Spaceship(SphereCollidableObject):
         
         sequence = Parallel(leftAnim)
 
-        if self.isRolling == False and self.currentBoost > self.rollDepletion and self.recharging == False:
+        if self.isRolling == False and self.currentBoost > self.rollDepletion and self.recharging == False and not self.Paused:
             self.isRolling = True
             sequence.start()
             self.currentBoost -= self.rollDepletion
@@ -369,7 +376,7 @@ class Spaceship(SphereCollidableObject):
         self.accept('mouse1', self.Fire)
 
     def SetPlayerRotation(self, task):
-        delta = globalClock.getDt()
+        delta = globalClock.getDt()  
         if self.mouseWatcher.hasMouse() and not self.Paused:
             mouse = WindowProperties()
             mouse.setCursorHidden(True)
@@ -390,15 +397,28 @@ class Spaceship(SphereCollidableObject):
             hChange = -currentMouseXPos * delta * self.mouseSens
             pChange = currentMouseYPos * delta * self.mouseSens
 
-            self.dummy.setH(self.dummy, hChange) 
-            self.dummy.setP(self.dummy, pChange)
+            #self.dummy.setH(self.dummy, hChange) 
+            #self.dummy.setP(self.dummy, pChange)
 
             self.modelNode.setH(self.modelNode, hChange) 
             self.modelNode.setP(self.modelNode, pChange)
 
+            #dummyInt = self.dummy.hprInterval(0.5, self.modelNode.getHpr(), blendType = 'easeOut')
+            #dummyInt.start()
+
             base.win.movePointer(0, self.winXSize // 2, self.winYSize // 2)
+
+            
              
         return task.cont
+    
+    def Temp(self, task):
+        quat = self.modelNode.getQuat()
+        if not self.isRolling:
+            dummyInt = self.dummy.quatInterval(0.5, quat, blendType = 'easeOut')
+            dummyInt.start()
+        #self.dummy.setHpr(self.modelNode.getHpr())
+        return Task.again
     
     def Pause(self):
         if not self.Paused:

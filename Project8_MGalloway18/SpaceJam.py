@@ -88,7 +88,7 @@ class Game(ShowBase):
     def SetCamera(self):
         self.disableMouse()
         self.camera.reparentTo(self.dummy)
-        self.camera.setFluidPos(0, -20, 0)
+        self.camera.setFluidPos(0, -8, 2)
 
     def UpdateCamera(self, task):
         self.dummy.setPos(self.Spaceship.modelNode.getPos())
