@@ -7,6 +7,7 @@ from panda3d.core import *
 import SpaceJamClasses
 import DefensePaths
 from direct.gui.OnscreenImage import OnscreenImage
+from panda3d.core import Point3, Point2
 from direct.task import Task
 from direct.gui.DirectGui import *
 import sys
@@ -25,10 +26,19 @@ class Game(ShowBase):
 
         self.dummy = NodePath('dummy')
         self.dummy.reparentTo(self.render)
+        self.target = NodePath('target')
+        self.target2 = NodePath('target2')
 
+        self.EnableHUD()
         self.SetupScene()
         self.SetCamera()
-        self.EnableHUD()
+
+        self.target.setScale(0.25)
+        self.target.reparentTo(self.Spaceship.modelNode)
+        self.target.setPos(0.35, 15, 0)
+        self.target2.setScale(0.25)
+        self.target2.reparentTo(self.Spaceship.modelNode)
+        self.target2.setPos(0.35, 20, 0)
         
         self.title = OnscreenText(text = "PAUSED", scale = 0.3, pos = (0, 0.6))
         self.title["fg"] = (1, 1, 1, 1)
@@ -41,7 +51,6 @@ class Game(ShowBase):
         self.quitButton["state"] = DGG.DISABLED
         self.quitButton['command'] = self.Quit
         self.quitButton.hide()
-
 
         for j in range(fullCyle):
             SpaceJamClasses.Drone.droneCount += 1
@@ -60,9 +69,6 @@ class Game(ShowBase):
         self.cTrav.showCollisions(self.render)
 
         self.accept('escape', self.Pause)
-        taskMgr.add(self.UpdateCamera, 'moveCamera')
-
-        #taskMgr.add(self.UpdateCamera, 'camera')
 
     def SetupScene(self):
         self.Universe = SpaceJamClasses.Universe(self.loader, "Assets/Universe/Universe.x", self.render, "Universe", "Assets/Textures/Sea-of-Stars.jpg", (0, 0, 0), 15000)
@@ -76,8 +82,7 @@ class Game(ShowBase):
 
         self.SpaceStation = SpaceJamClasses.SpaceStation(self.loader, "Assets/SpaceStation1B/spaceStation.egg", self.render, "SpaceStation", (0, 0, 0), 1)
 
-
-        self.Spaceship = SpaceJamClasses.Spaceship(self.loader, self.dummy, self.accept, self.cTrav, "Assets/Dumbledore/Dumbledore.egg", self.render, "Spaceship", (0, 0, 50), 1)
+        self.Spaceship = SpaceJamClasses.Spaceship(self.loader, self.dummy, self.Hud, self.Hud2, self.accept, self.cTrav, "Assets/Dumbledore/Dumbledore.egg", self.render, "Spaceship", (0, 0, 50), 1)
         self.Spaceship.SetKeyBindings()
         
         self.Sentinel1 = SpaceJamClasses.Orbiter(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, "Drone", 6.0, self.Planet6, 500, "MLB", self.Spaceship)
@@ -85,15 +90,15 @@ class Game(ShowBase):
         self.Sentinel3 = SpaceJamClasses.Orbiter(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, "Drone", 6.0, self.Planet1, 900, "Cloud", self.Spaceship)
         self.Sentinel4 = SpaceJamClasses.Orbiter(self.loader, "Assets/DroneDefender/DroneDefender.obj", self.render, "Drone", 6.0, self.Planet2, 900, "Cloud", self.Spaceship)
 
+        self.Wanderer1 = SpaceJamClasses.Wanderer(self.loader,"Assets/DroneDefender/DroneDefender.obj", self.render, "Drone", 6.0, self.Spaceship)
+        self.Wanderer1.setInterval(self.Planet1.modelNode.getPos(), self.Planet2.modelNode.getPos(), self.Planet3.modelNode.getPos())
+        self.Wanderer2 = SpaceJamClasses.Wanderer(self.loader,"Assets/DroneDefender/DroneDefender.obj", self.render, "Drone", 6.0, self.Spaceship)
+        self.Wanderer2.setInterval(self.Planet4.modelNode.getPos(), self.Planet5.modelNode.getPos(), self.Planet6.modelNode.getPos())
+
     def SetCamera(self):
         self.disableMouse()
         self.camera.reparentTo(self.dummy)
-        self.camera.setFluidPos(0, -8, 2)
-
-    def UpdateCamera(self, task):
-        self.dummy.setPos(self.Spaceship.modelNode.getPos())
-
-        return task.cont
+        self.camera.setFluidPos(0.3, -8, 2)
 
     def Pause(self):
         if not self.paused:
@@ -103,6 +108,8 @@ class Game(ShowBase):
             self.Sentinel2.Pause()
             self.Sentinel3.Pause()
             self.Sentinel4.Pause()
+            self.Wanderer1.Pause()
+            self.Wanderer2.Pause()
             self.paused = True
         else:
             self.Hide()
@@ -111,6 +118,8 @@ class Game(ShowBase):
             self.Sentinel2.Pause()
             self.Sentinel3.Pause()
             self.Sentinel4.Pause()
+            self.Wanderer1.Pause()
+            self.Wanderer2.Pause()
             self.paused = False
 
     def Show(self):
@@ -131,8 +140,18 @@ class Game(ShowBase):
         sys.exit()
 
     def EnableHUD(self):
-        self.Hud = OnscreenImage(image = "Assets/Hud/Reticle3b.png", pos = Vec3(0.065, 0, 0.05), scale = 0.1)
+        self.Hud = OnscreenImage(image = "Assets/Hud/Reticle3b.png", pos = Vec3(0, 0, 0), scale = 3)
         self.Hud.setTransparency(TransparencyAttrib.MAlpha)
+        self.Hud.reparentTo(self.target)
+        self.Hud.setBillboardPointEye()
+        self.Hud.setBin('fixed', 1)
+        self.Hud.setDepthTest(False)
+        self.Hud2 = OnscreenImage(image = "Assets/Hud/Reticle3b.png", pos = Vec3(0, 0, 0), scale = 2)
+        self.Hud2.setTransparency(TransparencyAttrib.MAlpha)
+        self.Hud2.reparentTo(self.target2)
+        self.Hud2.setBillboardPointEye()
+        self.Hud2.setBin('fixed', 0)
+        self.Hud2.setDepthTest(False)
 
     def DrawCircleXDefense(self, targetObject, droneName, angle):
         unitVec = DefensePaths.CircleX(angle)
